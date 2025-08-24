@@ -1,0 +1,300 @@
+<script lang="ts" setup>
+import { onReachBottom } from '@dcloudio/uni-app'
+import { onMounted, ref } from 'vue'
+// import WaterfallDemoNavigation from './WaterfallDemoNavigation.vue'
+import YunWaterfall from '../components/yun-waterfall.vue'
+import YunWaterfallItem from '../components/yun-waterfall-item.vue'
+import SimulatedImage from './SimulatedImage.vue'
+import { text } from './mockData'
+
+interface ListItem {
+  title: string
+  img: {
+    width: number
+    height: number
+  }
+  id: number | string
+}
+function random(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
+const placeholderSrc
+  = Math.random() > 0.5
+    ? 'https://sutras.github.io/yund-uniapp-docs//logo.svg'
+    : 'https://sutras.github.io/yund-uniapp-docs//logoxxxx.svg'
+
+const list = ref<ListItem[]>([])
+// 全局计数器，确保 index 的顺序性
+let globalIndex = 0
+
+function getData(count = 3) {
+  return new Promise<ListItem[]>((resolve) => {
+    const data = Array.from({ length: count }, () => 0)
+      .fill(0)
+      .map(() => generateItem(++globalIndex))
+    resolve(data)
+  })
+}
+// 错误类型文本转换
+function getErrorTypeText(status: string) {
+  switch (status) {
+    case 'original_failed':
+      return '原始内容加载失败'
+    case 'final_fallback':
+      return '占位图片也加载失败'
+    case 'timeout':
+      return '加载超时'
+    case 'placeholder_success':
+      return '占位图片加载成功'
+    default:
+      return ''
+  }
+}
+
+function onLoad() {
+}
+
+// 生成单个数据项
+function generateItem(index: number) {
+  const min = 20
+  const max = 50
+  const startIndex = random(0, text.length - max)
+  const length = random(min, max)
+  return {
+    title: `${index}--${text.slice(startIndex, startIndex + length)}`,
+    id: Date.now(),
+    img: {
+      width: random(100, 500),
+      height: random(100, 500),
+    },
+  }
+}
+
+// 头部插入数据
+function insertAtBeginning() {
+  const newItem = generateItem(++globalIndex)
+  list.value.unshift(newItem)
+}
+
+// 中间插入数据
+function insertAtMiddle() {
+  if (list.value.length === 0) {
+    insertAtBeginning()
+    return
+  }
+  const middleIndex = Math.floor(list.value.length / 2)
+  const newItem = generateItem(++globalIndex)
+  list.value.splice(middleIndex, 0, newItem)
+}
+
+// 尾部插入数据
+function insertAtEnd() {
+  const newItem = generateItem(++globalIndex)
+  list.value.push(newItem)
+}
+
+// 随机位置插入数据
+function insertRandom() {
+  if (list.value.length === 0) {
+    insertAtBeginning()
+    return
+  }
+  const randomIndex = random(0, list.value.length)
+  const newItem = generateItem(++globalIndex)
+  list.value.splice(randomIndex, 0, newItem)
+}
+
+// 批量插入数据
+async function insertBatch() {
+  const batchData = await getData()
+  const insertIndex = random(0, list.value.length)
+  list.value.splice(insertIndex, 0, ...batchData)
+}
+
+// 清空所有数据
+function clearAll() {
+  list.value = []
+  globalIndex = 0 // 重置计数器
+}
+
+// 中间删除数据
+function deleteAtMiddle() {
+  if (list.value.length === 0) {
+    return
+  }
+  const middleIndex = Math.floor(list.value.length / 2)
+  list.value.splice(middleIndex, 1)
+}
+
+// 随机删除数据
+function deleteRandom() {
+  if (list.value.length === 0) {
+    return
+  }
+  const randomIndex = random(0, list.value.length - 1)
+  list.value.splice(randomIndex, 1)
+}
+
+// 删除首项
+function deleteFirst() {
+  if (list.value.length === 0) {
+    return
+  }
+  list.value.shift()
+}
+
+// 删除末项
+function deleteLast() {
+  if (list.value.length === 0) {
+    return
+  }
+  list.value.pop()
+}
+
+onMounted(async () => {
+  list.value.push(...(await getData()))
+})
+
+onReachBottom(async () => {
+  list.value.push(...(await getData()))
+})
+</script>
+
+<template>
+  <view>
+    <!-- 数据插入测试按钮 -->
+    <view class="flex">
+      <wd-button size="small" @click="insertAtBeginning">
+        头部插入
+      </wd-button>
+      <wd-button size="small" @click="insertAtMiddle">
+        中间插入
+      </wd-button>
+      <wd-button size="small" @click="insertAtEnd">
+        尾部插入
+      </wd-button>
+      <wd-button size="small" @click="insertRandom">
+        随机插入
+      </wd-button>
+      <wd-button size="small" @click="insertBatch">
+        批量插入
+      </wd-button>
+      <wd-button size="small" @click="clearAll">
+        清空数据
+      </wd-button>
+    </view>
+    <view class="mt-2 flex">
+      <wd-button size="small" @click="deleteAtMiddle">
+        中间删除
+      </wd-button>
+      <wd-button size="small" @click="deleteRandom">
+        随机删除
+      </wd-button>
+      <wd-button size="small" @click="deleteFirst">
+        删除首项
+      </wd-button>
+      <wd-button size="small" @click="deleteLast">
+        删除末项
+      </wd-button>
+    </view>
+
+    <yun-waterfall class="mx-2" @load="onLoad">
+      <yun-waterfall-item v-for="(item, index) in list" :key="item.id" :index="index" error-handling-mode="fallback">
+        <template #default="{ onLoad, errorInfo }">
+          <!-- 第一层：正常内容 -->
+          <SimulatedImage v-if="errorInfo.status === 'none'" :meta="item.img" @load="onLoad" />
+          <!-- 第二层：占位图片 -->
+          <view
+            v-else-if="
+              [
+                'original_failed',
+                'placeholder_loading',
+                'placeholder_success',
+              ].includes(errorInfo.status)
+            " class="fallback-container"
+          >
+            <image
+              :src="placeholderSrc" mode="aspectFill" class="fallback-image" @load="errorInfo.placeholder.onLoad"
+              @error="errorInfo.placeholder.onError"
+            />
+          </view>
+          <!-- 第三层：最终兜底 -->
+          <view v-else class="final-fallback">
+            <view class="fallback-content">
+              <text class="fallback-text">
+                {{ errorInfo.message || '图片加载失败' }}
+              </text>
+              <text class="fallback-type">
+                {{ getErrorTypeText(errorInfo.status) }}
+              </text>
+            </view>
+          </view>
+          <view class="mt-10">
+            {{ item.title }}
+          </view>
+        </template>
+      </yun-waterfall-item>
+    </yun-waterfall>
+
+    <!-- 瀑布流演示导航 -->
+    <!-- <WaterfallDemoNavigation /> -->
+  </view>
+</template>
+
+<style lang="scss" scoped>
+// 错误处理相关样式
+.fallback-container {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+}
+
+.fallback-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8rpx;
+}
+
+.final-fallback {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border: 1px dashed #ddd;
+  border-radius: 8rpx;
+}
+
+.fallback-content {
+  text-align: center;
+}
+
+.fallback-text {
+  font-size: 28rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.fallback-type {
+  font-size: 24rpx;
+  color: #ccc;
+  display: block;
+}
+</style>
+
+<route lang="json">
+{
+  "name": "waterfall",
+  "layout": "default",
+  "style": {
+    "navigationBarTitleText": "瀑布流"
+  }
+}
+</route>

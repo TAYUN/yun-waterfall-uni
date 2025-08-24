@@ -1,0 +1,9 @@
+# .npmignore
+.vscode/
+demo/
+node_modules/
+.git/
+*.log
+.DS_Store
+pnpm-lock.yaml
+.gitignore
