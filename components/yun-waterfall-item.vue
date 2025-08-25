@@ -478,5 +478,5 @@ defineExpose<WaterfallItemExpose>({})
 </template>
 
 <style lang="scss">
-@use '../styles/index';
+@import '../styles/index';
 </style>
