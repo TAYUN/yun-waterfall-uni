@@ -27,10 +27,6 @@ export interface WaterfallItemProps {
    * 重试次数（仅在 retry 和 fallback 模式下生效）
    */
   retryCount?: number
-  /**
-   * 错误图片地址
-   */
-  errorImageSrc?: string
 }
 
 export interface WaterfallItemSlots {
@@ -98,6 +94,4 @@ export interface WaterfallItemInfo {
   retryCount?: number // 重试次数
   updateHeight: (a?: boolean) => Promise<void> // 重排前的预处理
   refreshImage: (a?: boolean) => Promise<void> // 重排前的预处理
-  // 三层错误处理状态
-  // 错误相关字段已移至组件内部的 errorState 管理
 }
