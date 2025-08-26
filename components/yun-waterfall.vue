@@ -639,6 +639,11 @@ const waterfallStyle = computed(() => {
   </view>
 </template>
 
-<style lang="scss" scoped>
-@import '../styles/index';
+<style lang="css" scoped>
+.yun-waterfall {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
 </style>
