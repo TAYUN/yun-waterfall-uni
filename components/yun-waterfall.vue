@@ -206,7 +206,6 @@ function getMinColumn() {
  * @param item 项目信息对象
  */
 function addItem(item: WaterfallItemInfo) {
-  console.log('添加项目', item.index)
   // 直接加入待排版队列
   pendingItems.push(item)
 
@@ -214,9 +213,6 @@ function addItem(item: WaterfallItemInfo) {
   const isInsertItem = item.index !== undefined && item.index < items.length
 
   if (isInsertItem) {
-    // 说明是插入的项目，插入到指定位置
-    console.log(`插入项目到位置 ${item.index}，当前items长度: ${items.length}`)
-    // 标记为插入项目
     // item.isInserted = true
     items.splice(item.index!, 0, item)
   }
@@ -538,7 +534,6 @@ watch(
   () => isActive.value,
   (newActive, oldActive) => {
     if (newActive && !oldActive && pendingItems.length > 0) {
-      console.log('页面重新激活，继续处理待排版项目', [...pendingItems])
       isLayoutInterrupted.value = false // 重置中断信号
       // 必须要用 nextTick
       nextTick(() => {
@@ -558,9 +553,6 @@ watch(
         stop()
       })
       liveTasks.clear()
-      console.log('liveTasks', liveTasks)
-      console.log('pendingItems', pendingItems)
-      console.log('页面失活，已清理所有待处理 Promise')
     }
   },
   {
@@ -574,7 +566,6 @@ onShow(() => {
 
 onHide(() => {
   isActive.value = false
-  console.log('页面隐藏')
 })
 
 // ==================== 上下文提供 ====================
