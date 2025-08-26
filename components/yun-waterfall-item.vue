@@ -145,7 +145,6 @@ let overtime = false
 
 const { start: startTimeout } = useTimeout(async () => {
   if (!item.loaded && !overtime) {
-    console.log('加载超时，启用兜底方案')
     overtime = true
     // 根据模式决定超时后的处理方式
     switch (props.errorHandlingMode) {
@@ -185,7 +184,6 @@ async function handleLoadFailure_None() {
   setStatus(ItemStatus.FINAL_FALLBACK, '加载失败')
   await item.updateHeight()
   item.loaded = true
-  console.log('item', item)
 }
 
 // 模式2：占位图模式 - 失败后直接显示占位图片
@@ -200,7 +198,6 @@ async function handleLoadFailure_Retry() {
 
   if (retryCount > 0) {
     // 还有重试次数，重新加载
-    console.log(`重试加载，剩余次数: ${retryCount}`)
     await item.refreshImage(false)
   }
   else {
@@ -277,12 +274,7 @@ async function onLoad(event?: any) {
  * 第二层：占位图片加载成功
  */
 async function onFallbackLoad() {
-  // console.log('占位图片加载成功')
-  // 占位图片加载成功，保持当前状态即可
-  // errorType 保持为 'original-failed'，因为原始内容确实失败了
-
-  if (overtime)
-    return // 已超时，忽略后续加载事件
+  if (overtime) return // 已超时，忽略后续加载事件
   setStatus(ItemStatus.PLACEHOLDER_SUCCESS, '占位图片加载成功')
   await item.updateHeight()
   item.loaded = true
@@ -292,10 +284,7 @@ async function onFallbackLoad() {
  * 第二层失败：占位图片也加载失败，进入第三层（文字兜底）
  */
 async function onFallbackError() {
-  // console.log('占位图片也加载失败，显示最终兜底方案')
-  if (overtime)
-    return // 已超时，忽略后续加载事件
-
+  if (overtime) return // 已超时，忽略后续加载事件
   setStatus(ItemStatus.FINAL_FALLBACK, '占位图片也加载失败')
   // 最后显示最终兜底方案结束处理
   await item.updateHeight()
@@ -316,14 +305,12 @@ async function updateHeight(flag = false) {
     // 查询 DOM 元素的边界信息，获取实际高度
     const rect = await getBoundingClientRect(`.${itemId.value}`, instance)
     if (!rect?.height || rect?.height === 0) {
-      // console.log('rect', rect)
       item.height = FALLBACK_HEIGHT // 出错了，使用默认高度
       item.heightError = true // 设置特殊高度与默认240高度区别开，避免误伤正常240的情况
     }
     else {
       // 纯图片加载加载失败，图片容器可能也是240
       item.height = rect.height
-      // console.log('rect.height', rect.height)
     }
   }
   catch (error) {
@@ -470,10 +457,8 @@ defineExpose<WaterfallItemExpose>({})
     </view> -->
 
     <!-- 插槽内容，传递完整的错误处理信息 -->
-    <slot
-      :key="itemId" :on-load="onLoad" :column-width="context.columnWidth"
-      :image-height="context.columnWidth * ratio" :error-info="slotErrorInfo"
-    />
+    <slot :key="itemId" :on-load="onLoad" :column-width="context.columnWidth"
+      :image-height="context.columnWidth * ratio" :error-info="slotErrorInfo" />
   </view>
 </template>
 
