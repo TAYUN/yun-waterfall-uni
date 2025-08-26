@@ -299,8 +299,7 @@ async function onFallbackError() {
 async function updateHeight(flag = false) {
   try {
     // 如果父级排版中断，停止获取dom信息
-    if (context.isLayoutInterrupted)
-      return
+    if (context.isLayoutInterrupted) return
     await nextTick() // 很重要不然会导致获取高度错误
     // 查询 DOM 元素的边界信息，获取实际高度
     const rect = await getBoundingClientRect(`.${itemId.value}`, instance)
