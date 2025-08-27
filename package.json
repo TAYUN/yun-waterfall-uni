@@ -1,6 +1,6 @@
 {
   "name": "yun-waterfall-uni",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "uniapp高性能瀑布流组件",
   "main": "index.ts",
   "keywords": [
