@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
-import YunWaterfall from '../components/yun-waterfall.vue'
-import YunWaterfallItem from '../components/yun-waterfall-item.vue'
+import { onReachBottom } from '@dcloudio/uni-app'
+import { YunWaterfall, YunWaterfallItem } from 'yun-waterfall-uni'
+import { mockImages } from './mock'
 
 const columns = ref(3)
 
@@ -17,7 +18,7 @@ function getData() {
       .fill(0)
       .map((_, i) => {
         return {
-          url: `https://fastly.jsdelivr.net/npm/@sard/assets/images/tiger${(i % 12) + 1}.jpg`,
+          url: mockImages[i % mockImages.length],
         }
       })
     resolve(data)
@@ -30,6 +31,12 @@ function sliderChange({ detail: { value } }: any) {
   columns.value = value
 }
 onMounted(async () => {
+  list.value.push(...(await getData()))
+})
+let i = 0
+onReachBottom(async () => {
+  if (i++ > 10)
+    return
   list.value.push(...(await getData()))
 })
 </script>
@@ -46,7 +53,7 @@ onMounted(async () => {
     </yun-waterfall>
 
     <!-- 瀑布流演示导航 -->
-    <!-- <WaterfallDemoNavigation /> -->
+    <NavTab />
   </view>
 </template>
 
@@ -55,7 +62,7 @@ onMounted(async () => {
   "name": "waterfall-columns",
   "layout": "default",
   "style": {
-    "navigationBarTitleText": "瀑布流"
+    "navigationBarTitleText": "列数变化"
   }
 }
 </route>

@@ -1,11 +1,9 @@
 <script lang="ts" setup>
 import { onReachBottom } from '@dcloudio/uni-app'
 import { onMounted, ref } from 'vue'
-// import WaterfallDemoNavigation from './WaterfallDemoNavigation.vue'
-import YunWaterfall from '../components/yun-waterfall.vue'
-import YunWaterfallItem from '../components/yun-waterfall-item.vue'
+import { YunWaterfall, YunWaterfallItem } from 'yun-waterfall-uni'
 import SimulatedImage from './SimulatedImage.vue'
-import { text } from './mockData'
+import { text } from './mock'
 
 interface ListItem {
   title: string
@@ -15,19 +13,20 @@ interface ListItem {
   }
   id: number | string
 }
+
 function random(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min)
 }
 const placeholderSrc
   = Math.random() > 0.5
-    ? 'https://sutras.github.io/yund-uniapp-docs//logo.svg'
-    : 'https://sutras.github.io/yund-uniapp-docs//logoxxxx.svg'
+    ? 'https://wot-ui.cn/logo.png'
+    : 'https://sutras.github.io/sard-uniapp-docs//logo.svg'
 
 const list = ref<ListItem[]>([])
 // 全局计数器，确保 index 的顺序性
 let globalIndex = 0
 
-function getData(count = 3) {
+function getData(count = 10) {
   return new Promise<ListItem[]>((resolve) => {
     const data = Array.from({ length: count }, () => 0)
       .fill(0)
@@ -53,19 +52,19 @@ function getErrorTypeText(status: string) {
 
 function onLoad() {
 }
-
+let nextId = 1
 // 生成单个数据项
 function generateItem(index: number) {
-  const min = 20
-  const max = 50
+  const min = 5
+  const max = 30
   const startIndex = random(0, text.length - max)
   const length = random(min, max)
   return {
     title: `${index}--${text.slice(startIndex, startIndex + length)}`,
-    id: Date.now(),
+    id: nextId++,
     img: {
-      width: random(100, 500),
-      height: random(100, 500),
+      width: random(100, 300),
+      height: random(100, 300),
     },
   }
 }
@@ -142,6 +141,13 @@ function deleteFirst() {
   }
   list.value.shift()
 }
+// 删除首项
+function removeItem(index: number) {
+  if (list.value.length === 0) {
+    return
+  }
+  list.value.splice(index, 1)
+}
 
 // 删除末项
 function deleteLast() {
@@ -154,8 +160,10 @@ function deleteLast() {
 onMounted(async () => {
   list.value.push(...(await getData()))
 })
-
+let i = 0
 onReachBottom(async () => {
+  if (i++ > 10)
+    return
   list.value.push(...(await getData()))
 })
 </script>
@@ -201,43 +209,51 @@ onReachBottom(async () => {
     <yun-waterfall class="mx-2" @load="onLoad">
       <yun-waterfall-item v-for="(item, index) in list" :key="item.id" :index="index" error-handling-mode="fallback">
         <template #default="{ onLoad, errorInfo }">
-          <!-- 第一层：正常内容 -->
-          <SimulatedImage v-if="errorInfo.status === 'none'" :meta="item.img" @load="onLoad" />
-          <!-- 第二层：占位图片 -->
-          <view
-            v-else-if="
-              [
-                'original_failed',
-                'placeholder_loading',
-                'placeholder_success',
-              ].includes(errorInfo.status)
-            " class="fallback-container"
-          >
-            <image
-              :src="placeholderSrc" mode="aspectFill" class="fallback-image" @load="errorInfo.placeholder.onLoad"
-              @error="errorInfo.placeholder.onError"
-            />
-          </view>
-          <!-- 第三层：最终兜底 -->
-          <view v-else class="final-fallback">
-            <view class="fallback-content">
-              <text class="fallback-text">
-                {{ errorInfo.message || '图片加载失败' }}
-              </text>
-              <text class="fallback-type">
-                {{ getErrorTypeText(errorInfo.status) }}
-              </text>
+          <view class="overflow-hidden border border-gray-300 rounded-lg border-solid bg-white shadow-lg">
+            <!-- 第一层：正常内容 -->
+            <SimulatedImage v-if="errorInfo.status === 'none'" :meta="item.img" @load="onLoad" />
+            <!-- 第二层：占位图片 -->
+            <view
+              v-else-if="
+                [
+                  'original_failed',
+                  'placeholder_loading',
+                  'placeholder_success',
+                ].includes(errorInfo.status)
+              " class="fallback-container"
+            >
+              <image
+                :src="placeholderSrc" mode="aspectFill" class="fallback-image" @load="errorInfo.placeholder.onLoad"
+                @error="errorInfo.placeholder.onError"
+              />
             </view>
-          </view>
-          <view class="mt-10">
-            {{ item.title }}
+            <!-- 第三层：最终兜底 -->
+            <view v-else class="final-fallback">
+              <view class="fallback-content">
+                <text class="fallback-text">
+                  {{ errorInfo.message || '图片加载失败' }}
+                </text>
+                <text class="fallback-type">
+                  {{ getErrorTypeText(errorInfo.status) }}
+                </text>
+              </view>
+            </view>
+            <view class="p-2">
+              <view class="mb-2">
+                {{ item.title }}
+              </view>
+              <wd-button size="small" type="error" @click="removeItem(index)">
+                删除此项
+              </wd-button>
+            </view>
           </view>
         </template>
       </yun-waterfall-item>
     </yun-waterfall>
 
+    <view class="p-10" />
     <!-- 瀑布流演示导航 -->
-    <!-- <WaterfallDemoNavigation /> -->
+    <NavTab />
   </view>
 </template>
 
@@ -250,14 +266,11 @@ onReachBottom(async () => {
   align-items: center;
   justify-content: center;
   background-color: #f5f5f5;
-  border-radius: 8rpx;
 }
 
 .fallback-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 8rpx;
 }
 
 .final-fallback {
@@ -268,7 +281,6 @@ onReachBottom(async () => {
   justify-content: center;
   background-color: #f5f5f5;
   border: 1px dashed #ddd;
-  border-radius: 8rpx;
 }
 
 .fallback-content {
@@ -294,7 +306,7 @@ onReachBottom(async () => {
   "name": "waterfall",
   "layout": "default",
   "style": {
-    "navigationBarTitleText": "瀑布流"
+    "navigationBarTitleText": "基础示例"
   }
 }
 </route>
