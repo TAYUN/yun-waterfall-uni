@@ -455,8 +455,8 @@ defineExpose<WaterfallItemExpose>({})
     </view> -->
 
     <!-- 插槽内容，传递完整的错误处理信息 -->
-    <!-- TODO 待测试删除了key itemId 测试是否有影响 -->
-    <slot :on-load="onLoad" :column-width="context.columnWidth"
+    <!-- TODO  itemId 和 waterfallItemClass 共用了，是否有影响 -->
+    <slot :key="itemId" :on-load="onLoad" :column-width="context.columnWidth"
       :image-height="context.columnWidth * ratio" :error-info="slotErrorInfo" />
   </view>
 </template>
