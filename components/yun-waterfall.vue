@@ -213,12 +213,12 @@ function addItem(item: WaterfallItemInfo) {
   const isInsertItem = item.index !== undefined && item.index < items.length
 
   if (isInsertItem) {
-    // item.isInserted = true
+    item.isInserted = true
     items.splice(item.index!, 0, item)
   }
   else {
     // 末尾追加项目
-    // item.isInserted = false
+    item.isInserted = false
     items.push(item)
   }
 
@@ -406,10 +406,8 @@ async function processQueue() {
         return
       }
 
-      // 检查是否为插入项目（而非末尾追加）
-      const isInsertItem = item.index !== undefined && item.index < items.length
       // 检查是否为插入项目（使用addItem中设置的标记）
-      if (isInsertItem) {
+      if (item.isInserted) {
         // 6. 插入后进行全重排（类似删除后的处理）
         fullReflowAfterInsert()
       }
@@ -454,7 +452,6 @@ async function processQueue() {
   catch (error) {
     isLayoutInterrupted.value = true
     console.error('error', error)
-    console.log('liveTasks', liveTasks)
     // console.log('pendingItems', pendingItems)
   }
 }
