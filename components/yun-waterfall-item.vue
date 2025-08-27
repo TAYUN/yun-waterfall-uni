@@ -130,7 +130,7 @@ const item = shallowReactive<WaterfallItemInfo>({
   loaded: false, // 是否加载完成（图片等资源）
   loadSuccess: false, // 是否加载成功
   visible: false, // 是否可见（由父组件控制）
-  width: context.columnWidth, // 项目宽度（DOM 实际宽度）实际上和context.columnWidth相等
+  isInserted: false, // 是否插入项目 
   heightError: false, // 是否高度异常
   height: 0, // 项目高度（DOM 实际高度）
   top: 0, // 垂直位置（由父组件计算）
