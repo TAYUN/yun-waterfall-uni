@@ -1,7 +1,7 @@
 # .npmignore
 .vscode/
 demo/
-SimulatedImage.vue
+components/SimulatedImage.vue
 node_modules/
 .git/
 *.log
