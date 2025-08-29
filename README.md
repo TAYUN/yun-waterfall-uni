@@ -22,29 +22,6 @@ npm install yun-waterfall-uni
 ### 基础用法
 
 ```vue
-<template>
-  <YunWaterfall :columns="2" :column-gap="16" :row-gap="16">
-    <YunWaterfallItem 
-      v-for="(item, index) in list" 
-      :key="item.id"
-      :index="index"
-    >
-      <template #default="{ onLoad, columnWidth }">
-        <image 
-          :src="item.imageUrl" 
-          :style="{ width: columnWidth + 'px' }"
-          mode="widthFix"
-          @load="onLoad" 
-          @error="onLoad" 
-        />
-        <view class="content">
-          <text>{{ item.title }}</text>
-        </view>
-      </template>
-    </YunWaterfallItem>
-  </YunWaterfall>
-</template>
-
 <script setup>
 import { ref } from 'vue'
 import { YunWaterfall, YunWaterfallItem } from 'yun-waterfall-uni'
@@ -55,6 +32,29 @@ const list = ref([
   // ...
 ])
 </script>
+
+<template>
+  <YunWaterfall :columns="2" :column-gap="16" :row-gap="16">
+    <YunWaterfallItem
+      v-for="(item, index) in list"
+      :key="item.id"
+      :index="index"
+    >
+      <template #default="{ loaded, columnWidth }">
+        <image
+          :src="item.imageUrl"
+          :style="{ width: `${columnWidth}px` }"
+          mode="widthFix"
+          @load="loaded"
+          @error="loaded"
+        />
+        <view class="content">
+          <text>{{ item.title }}</text>
+        </view>
+      </template>
+    </YunWaterfallItem>
+  </YunWaterfall>
+</template>
 ```
 
 ## API 文档
@@ -76,8 +76,8 @@ const list = ref([
 
 | 事件名 | 说明 | 回调参数 |
 |--------|------|----------|
-| load | 所有项目加载完成时触发 | - |
-| loadstart | 开始加载项目时触发 | - |
+| loadEnd | 所有项目加载完成时触发 | - |
+| loadStart | 开始加载项目时触发 | - |
 | retry | 项目重试加载时触发 | - |
 
 ### YunWaterfall Methods
@@ -86,10 +86,9 @@ const list = ref([
 
 | 方法名 | 说明 | 参数 | 使用场景 |
 |--------|------|------|----------|
-| reflow() | 增量重排，处理待排版队列 | - | 有新项目需要排版时 |
-| fullReflow() | 完整重排，重新排版所有项目 | - | 布局发生重大变化时 |
+| reflow() | 完整重排，重新排版所有项目 | - | 布局发生重大变化时 |
 | refreshReflow() | 刷新重排，重置数据后重新排版 | - | 清空数据重新开始时 |
-| onLoad(handler) | 注册加载完成回调 | handler: () => void | 监听所有项目加载完成 |
+| loadDone(handler) | 注册加载完成回调 | handler: () => void | 监听所有项目加载完成 |
 
 ### YunWaterfallItem Props
 
@@ -110,9 +109,9 @@ const list = ref([
 
 ```vue
 <YunWaterfallItem>
-  <template #default="{ onLoad, columnWidth, imageHeight, errorInfo }">
+  <template #default="{ loaded, columnWidth, imageHeight, errorInfo }">
     <!-- 你的内容 -->
-    <image :src="imageUrl" @load="onLoad" @error="onLoad" />
+    <image :src="imageUrl" @load="loaded" @error="loaded" />
   </template>
 </YunWaterfallItem>
 ```
@@ -121,7 +120,7 @@ const list = ref([
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| onLoad | Function | 内容加载完成回调，**必须调用**，否则布局不会更新 |
+| loaded | Function | 内容加载完成回调，**必须调用**，否则布局不会更新 |
 | columnWidth | number | 当前列宽度，根据容器宽度和列数自动计算 |
 | imageHeight | number | 建议图片高度（基于已知宽高比计算，仅在传入 width/height 时有效） |
 | errorInfo | Object | 错误处理信息对象，包含当前状态和回调方法 |
@@ -130,51 +129,16 @@ const list = ref([
 
 | 属性 | 类型 | 说明 |
 |------|------|------|
-| status | string | 当前状态：'none' \| 'original_failed' \| 'placeholder_loading' \| 'placeholder_success' \| 'timeout' \| 'final_fallback' |
+| status | string | 当前状态：'none' \| 'fail' \| 'phok' \| 'timeout' \| 'final' |
 | message | string | 状态描述信息 |
-| placeholder.onLoad | Function | 占位图加载成功回调 |
-| placeholder.onError | Function | 占位图加载失败回调 |
+| placeholder.load | Function | 占位图加载成功回调 |
+| placeholder.error | Function | 占位图加载失败回调 |
 
 ## 使用示例
 
 ### 动态列数
 
 ```vue
-<template>
-  <view>
-    <!-- 列数控制器 -->
-    <slider 
-      :value="columns" 
-      :min="1" 
-      :max="5" 
-      show-value 
-      @change="onColumnsChange" 
-    />
-    
-    <YunWaterfall 
-      :columns="columns" 
-      :column-gap="8" 
-      :row-gap="8"
-    >
-      <YunWaterfallItem 
-        v-for="(item, index) in list" 
-        :key="item.id"
-        :index="index"
-      >
-        <template #default="{ onLoad, columnWidth }">
-          <image 
-            :src="item.imageUrl" 
-            :style="{ width: columnWidth + 'px' }"
-            mode="widthFix"
-            @load="onLoad" 
-            @error="onLoad" 
-          />
-        </template>
-      </YunWaterfallItem>
-    </YunWaterfall>
-  </view>
-</template>
-
 <script setup>
 import { ref } from 'vue'
 
@@ -185,6 +149,41 @@ function onColumnsChange({ detail: { value } }) {
   // 列数变化会自动触发重排
 }
 </script>
+
+<template>
+  <view>
+    <!-- 列数控制器 -->
+    <slider
+      :value="columns"
+      :min="1"
+      :max="5"
+      show-value
+      @change="onColumnsChange"
+    />
+
+    <YunWaterfall
+      :columns="columns"
+      :column-gap="8"
+      :row-gap="8"
+    >
+      <YunWaterfallItem
+        v-for="(item, index) in list"
+        :key="item.id"
+        :index="index"
+      >
+        <template #default="{ loaded, columnWidth }">
+          <image
+            :src="item.imageUrl"
+            :style="{ width: `${columnWidth}px` }"
+            mode="widthFix"
+            @load="loaded"
+            @error="loaded"
+          />
+        </template>
+      </YunWaterfallItem>
+    </YunWaterfall>
+  </view>
+</template>
 ```
 
 ### 已知尺寸优化
@@ -192,41 +191,41 @@ function onColumnsChange({ detail: { value } }) {
 当你已知图片尺寸时，可以传入 `width` 和 `height` 属性来优化性能：
 
 ```vue
+<script setup>
+const list = ref([
+  {
+    id: 1,
+    imageUrl: 'https://example.com/1.jpg',
+    width: 300,
+    height: 400
+  },
+  // ...
+])
+</script>
+
 <template>
   <YunWaterfall :columns="2">
-    <YunWaterfallItem 
-      v-for="(item, index) in list" 
+    <YunWaterfallItem
+      v-for="(item, index) in list"
       :key="item.id"
       :index="index"
       :width="item.width"
       :height="item.height"
     >
-      <template #default="{ onLoad, columnWidth, imageHeight }">
-        <image 
-          :src="item.imageUrl" 
-          :style="{ 
-            width: columnWidth + 'px',
-            height: imageHeight + 'px'
+      <template #default="{ loaded, columnWidth, imageHeight }">
+        <image
+          :src="item.imageUrl"
+          :style="{
+            width: `${columnWidth}px`,
+            height: `${imageHeight}px`,
           }"
-          @load="onLoad" 
-          @error="onLoad" 
+          @load="loaded"
+          @error="loaded"
         />
       </template>
     </YunWaterfallItem>
   </YunWaterfall>
 </template>
-
-<script setup>
-const list = ref([
-  { 
-    id: 1, 
-    imageUrl: 'https://example.com/1.jpg', 
-    width: 300, 
-    height: 400 
-  },
-  // ...
-])
-</script>
 ```
 
 ### 错误处理模式
@@ -237,12 +236,12 @@ const list = ref([
 
 ```vue
 <YunWaterfallItem error-handling-mode="none">
-  <template #default="{ onLoad, columnWidth }">
-    <image 
-      :src="item.imageUrl" 
+  <template #default="{ loaded, columnWidth }">
+    <image
+      :src="item.imageUrl"
       :style="{ width: columnWidth + 'px' }"
-      @load="onLoad" 
-      @error="onLoad" 
+      @load="loaded"
+      @error="loaded"
     />
   </template>
 </YunWaterfallItem>
@@ -252,20 +251,20 @@ const list = ref([
 
 ```vue
 <YunWaterfallItem error-handling-mode="placeholder">
-  <template #default="{ onLoad, columnWidth, errorInfo }">
-    <image 
+  <template #default="{ loaded, columnWidth, errorInfo }">
+    <image
       v-if="errorInfo.status === 'none'"
-      :src="item.imageUrl" 
+      :src="item.imageUrl"
       :style="{ width: columnWidth + 'px' }"
-      @load="onLoad" 
-      @error="onLoad" 
+      @load="loaded"
+      @error="loaded"
     />
-    <image 
+    <image
       v-else
       src="/static/placeholder.png"
       :style="{ width: columnWidth + 'px' }"
-      @load="errorInfo.placeholder.onLoad" 
-      @error="errorInfo.placeholder.onError" 
+      @load="errorInfo.placeholder.load"
+      @error="errorInfo.placeholder.error"
     />
   </template>
 </YunWaterfallItem>
@@ -274,18 +273,18 @@ const list = ref([
 #### 3. 重试模式 (retry)
 
 ```vue
-<YunWaterfallItem 
-  error-handling-mode="retry" 
+<YunWaterfallItem
+  error-handling-mode="retry"
   :retry-count="3"
 >
-  <template #default="{ onLoad, columnWidth, errorInfo }">
-    <image 
-      :src="item.imageUrl" 
+  <template #default="{ loaded, columnWidth, errorInfo }">
+    <image
+      :src="item.imageUrl"
       :style="{ width: columnWidth + 'px' }"
-      @load="onLoad" 
-      @error="onLoad" 
+      @load="loaded"
+      @error="loaded"
     />
-    <view v-if="errorInfo.status === 'final_fallback'" class="error-fallback">
+    <view v-if="errorInfo.status === 'final'" class="error-fallback">
       <text>加载失败</text>
     </view>
   </template>
@@ -295,33 +294,33 @@ const list = ref([
 #### 4. 完整模式 (fallback)
 
 ```vue
-<YunWaterfallItem 
+<YunWaterfallItem
   error-handling-mode="fallback"
   :retry-count="3"
   :max-wait="5000"
 >
-  <template #default="{ onLoad, columnWidth, errorInfo }">
+  <template #default="{ loaded, columnWidth, errorInfo }">
     <!-- 正常内容 -->
-    <image 
+    <image
       v-if="errorInfo.status === 'none'"
-      :src="item.imageUrl" 
+      :src="item.imageUrl"
       :style="{ width: columnWidth + 'px' }"
-      @load="onLoad" 
-      @error="onLoad" 
+      @load="loaded"
+      @error="loaded"
     />
-    
+
     <!-- 占位图 -->
-    <image 
-      v-else-if="errorInfo.status === 'original_failed'"
+    <image
+      v-else-if="errorInfo.status === 'fail'"
       src="/static/placeholder.png"
       :style="{ width: columnWidth + 'px' }"
-      @load="errorInfo.placeholder.onLoad" 
-      @error="errorInfo.placeholder.onError" 
+      @load="errorInfo.placeholder.load"
+      @error="errorInfo.placeholder.error"
     />
-    
+
     <!-- 最终兜底 -->
-    <view 
-      v-else-if="errorInfo.status === 'final_fallback'"
+    <view
+      v-else-if="errorInfo.status === 'final'"
       :style="{ width: columnWidth + 'px', height: '200px' }"
       class="fallback"
     >
@@ -334,50 +333,6 @@ const list = ref([
 ### 数据操作示例
 
 ```vue
-<template>
-  <view>
-    <!-- 操作按钮 -->
-    <view class="controls">
-      <button @click="insertAtBeginning">头部插入</button>
-      <button @click="insertAtMiddle">中间插入</button>
-      <button @click="insertAtEnd">尾部插入</button>
-      <button @click="insertBatch">批量插入</button>
-      <button @click="clearAll">清空数据</button>
-    </view>
-    
-    <YunWaterfall 
-      ref="waterfallRef" 
-      :columns="columns" 
-      @load="onAllLoaded"
-      @loadstart="onLoadStart"
-    >
-      <YunWaterfallItem 
-        v-for="(item, index) in list" 
-        :key="item.id"
-        :index="index"
-      >
-        <template #default="{ onLoad, columnWidth }">
-          <view class="item">
-            <image 
-              :src="item.imageUrl" 
-              :style="{ width: columnWidth + 'px' }"
-              mode="widthFix"
-              @load="onLoad" 
-              @error="onLoad" 
-            />
-            <view class="content">
-              <text>{{ item.title }}</text>
-              <button @click="removeItem(index)" class="remove-btn">
-                删除
-              </button>
-            </view>
-          </view>
-        </template>
-      </YunWaterfallItem>
-    </YunWaterfall>
-  </view>
-</template>
-
 <script setup>
 import { ref } from 'vue'
 import { YunWaterfall, YunWaterfallItem } from 'yun-waterfall-uni'
@@ -446,28 +401,67 @@ function onAllLoaded() {
   console.log('所有项目加载完成')
 }
 </script>
+
+<template>
+  <view>
+    <!-- 操作按钮 -->
+    <view class="controls">
+      <button @click="insertAtBeginning">
+        头部插入
+      </button>
+      <button @click="insertAtMiddle">
+        中间插入
+      </button>
+      <button @click="insertAtEnd">
+        尾部插入
+      </button>
+      <button @click="insertBatch">
+        批量插入
+      </button>
+      <button @click="clearAll">
+        清空数据
+      </button>
+    </view>
+
+    <YunWaterfall
+      ref="waterfallRef"
+      :columns="columns"
+      @load-end="onAllLoaded"
+      @load-start="onLoadStart"
+    >
+      <YunWaterfallItem
+        v-for="(item, index) in list"
+        :key="item.id"
+        :index="index"
+      >
+        <template #default="{ loaded, columnWidth }">
+          <view class="item">
+            <image
+              :src="item.imageUrl"
+              :style="{ width: `${columnWidth}px` }"
+              mode="widthFix"
+              @load="loaded"
+              @error="loaded"
+            />
+            <view class="content">
+              <text>{{ item.title }}</text>
+              <button class="remove-btn" @click="removeItem(index)">
+                删除
+              </button>
+            </view>
+          </view>
+        </template>
+      </YunWaterfallItem>
+    </YunWaterfall>
+  </view>
+</template>
 ```
 
 ### 手动控制重排
 
 ```vue
-<template>
-  <view>
-    <YunWaterfall ref="waterfallRef" :columns="columns">
-      <!-- 瀑布流内容 -->
-    </YunWaterfall>
-    
-    <view class="controls">
-      <button @click="changeColumns">切换列数</button>
-      <button @click="refresh">刷新数据</button>
-      <button @click="manualReflow">手动重排</button>
-      <button @click="fullReflow">完整重排</button>
-    </view>
-  </view>
-</template>
-
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const waterfallRef = ref()
 const columns = ref(2)
@@ -489,23 +483,38 @@ function refresh() {
   loadData()
 }
 
-// 手动增量重排
-function manualReflow() {
-  waterfallRef.value?.reflow()
-}
-
 // 完整重排
-function fullReflow() {
-  waterfallRef.value?.fullReflow()
+function reflow() {
+  waterfallRef.value?.reflow()
 }
 
 // 监听加载完成
 onMounted(() => {
-  waterfallRef.value?.onLoad(() => {
+  waterfallRef.value?.loadDone(() => {
     console.log('所有项目加载完成')
   })
 })
 </script>
+
+<template>
+  <view>
+    <YunWaterfall ref="waterfallRef" :columns="columns">
+      <!-- 瀑布流内容 -->
+    </YunWaterfall>
+
+    <view class="controls">
+      <button @click="changeColumns">
+        切换列数
+      </button>
+      <button @click="refresh">
+        刷新数据
+      </button>
+      <button @click="reflow">
+        完整重排
+      </button>
+    </view>
+  </view>
+</template>
 ```
 
 ## 最佳实践
@@ -537,9 +546,12 @@ import { computed } from 'vue'
 // 根据屏幕宽度动态调整列数
 const columns = computed(() => {
   const screenWidth = uni.getSystemInfoSync().screenWidth
-  if (screenWidth < 400) return 2
-  if (screenWidth < 600) return 3
-  if (screenWidth < 900) return 4
+  if (screenWidth < 400)
+    return 2
+  if (screenWidth < 600)
+    return 3
+  if (screenWidth < 900)
+    return 4
   return 5
 })
 </script>
@@ -554,13 +566,13 @@ const columns = computed(() => {
 ## 常见问题
 
 ### Q: 为什么图片加载后布局没有更新？
-A: 确保在图片的 `@load` 和 `@error` 事件中调用了 `onLoad` 回调函数。
+A: 确保在图片的 `@load` 和 `@error` 事件中调用了 `loaded` 回调函数。
 
 ### Q: 如何实现无限滚动？
 A: 结合 UniApp 的 `onReachBottom` 生命周期，在触底时加载更多数据并添加到列表末尾。
 
 ### Q: 动态修改列数后布局错乱怎么办？
-A: 列数变化会自动触发重排，如果仍有问题，可以手动调用 `fullReflow()` 方法。
+A: 列数变化会自动触发重排，如果仍有问题，可以手动调用 `reflow()` 方法。
 
 ### Q: 如何自定义加载失败的样式？
 A: 通过 `errorInfo.status` 判断当前状态，在插槽中渲染不同的内容和样式。

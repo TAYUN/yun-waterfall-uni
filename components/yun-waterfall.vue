@@ -53,9 +53,22 @@ const emit = defineEmits<WaterfallEmits>()
 // 插槽定义
 defineSlots<WaterfallSlots>()
 
-// 容器是否活跃 TODO 应该要支持受控和非受控模式
-const isActive = ref(true)
+// const isActive = defineModel<boolean>() //语法较新
+const isShow = ref<boolean>(props?.show || true)
+// 容器是否活跃
+const isActive = computed(() => {
+  if (props?.show !== undefined) {
+    return props?.show
+  }
+  return isShow.value
+})
 
+function setActive(value: boolean) {
+  if (props?.show === undefined) {
+    isShow.value = value
+  }
+  emit('update:show', value)
+}
 // ==================== 容器尺寸管理 ====================
 
 // 生成唯一的容器ID，用于DOM查询
@@ -119,7 +132,7 @@ let loadedHandlers: (() => void)[] = []
  * 注册加载完成回调
  * @param handler 回调函数
  */
-function onLoad(handler: () => void) {
+function loadDone(handler: () => void) {
   nextTick(() => {
     if (loadStatus === 'idle') {
       // 如果当前是空闲状态，立即执行回调
@@ -165,11 +178,11 @@ function updateLoadStatus() {
     loadedHandlers.forEach(handler => handler())
     loadedHandlers = []
     loadStatus = 'idle'
-    emit('load') // 触发加载完成事件
+    emit('loadEnd') // 触发加载完成事件
   }
   else {
     loadStatus = 'busy'
-    emit('loadstart') // 触发加载开始事件
+    emit('loadStart') // 触发加载开始事件
   }
 }
 /**
@@ -224,7 +237,7 @@ function addItem(item: WaterfallItemInfo) {
 
   // 触发首次开始排版 todo 会不会和isactive冲突并发？
   if (loadStatus === 'idle') {
-    reflow()
+    processQueue()
   }
 }
 
@@ -250,7 +263,6 @@ function removeItem(item: WaterfallItemInfo) {
 
 /**
  * 删除项目后重新计算剩余项目位置的优化算法
- * @param id 伪删除项目的唯一id
  */
 function recalculateItemsAfterRemoval() {
   if (items.length === 0) {
@@ -441,7 +453,7 @@ async function processQueue() {
 
     // 全部排完后，兜底清理残余 watch
     liveTasks.forEach(({ reject, stop }) => {
-      reject(false)
+      reject(new Error('未知异常，错误码1003'))
       stop()
     })
     liveTasks.clear()
@@ -471,7 +483,7 @@ function resetItemsForReflow() {
  * 重置所有状态，重新排版所有项目
  * 主要用于: 当列数、列间距、行间距发生变化时，需要完整重新排版
  */
-const fullReflow = debounce(async () => {
+const reflow = debounce(async () => {
   // 重置列
   initColumns()
 
@@ -507,9 +519,6 @@ async function refreshReflow() {
  * 仅处理当前待排版队列中的项目
  * 主要用于: 页面隐藏，需要增量重排
  */
-function reflow() {
-  return processQueue()
-}
 
 // ==================== 响应式监听 ====================
 
@@ -519,7 +528,7 @@ function reflow() {
  */
 watch([() => props.columns, () => props.columnGap, () => props.rowGap], () => {
   setTimeout(() => {
-    fullReflow()
+    reflow()
   }, 16)
 })
 
@@ -530,6 +539,7 @@ watch([() => props.columns, () => props.columnGap, () => props.rowGap], () => {
 watch(
   () => isActive.value,
   (newActive, oldActive) => {
+    console.log('isActive.value', isActive.value)
     if (newActive && !oldActive && pendingItems.length > 0) {
       isLayoutInterrupted.value = false // 重置中断信号
       // 必须要用 nextTick
@@ -539,7 +549,7 @@ watch(
         })
         setTimeout(() => {
           // 这里很重要，必要要包裹在setTimeout中
-          reflow()
+          processQueue()
         }, 0)
       }) // 延迟执行，确保页面完全激活
     }
@@ -558,11 +568,15 @@ watch(
 )
 
 onShow(() => {
-  isActive.value = true
+  if (props.show === undefined) {
+    setActive(true)
+  }
 })
 
 onHide(() => {
-  isActive.value = false
+  if (props.show === undefined) {
+    setActive(false)
+  }
 })
 
 // ==================== 上下文提供 ====================
@@ -590,10 +604,9 @@ provide(
  * 父组件可以通过 ref 调用这些方法
  */
 defineExpose<WaterfallExpose>({
-  reflow, // 增量重排（处理待排版队列）
-  fullReflow, // 完整重排（重置所有状态）
+  reflow, // 完整重排（重置所有状态）
   refreshReflow, // 刷新重排（重置所有状态，包括数据）
-  onLoad, // 注册加载完成回调
+  loadDone, // 注册加载完成回调
 })
 
 // ==================== 样式计算 ====================

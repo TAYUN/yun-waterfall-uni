@@ -1,6 +1,7 @@
 # .npmignore
 .vscode/
 demo/
+SimulatedImage.vue
 node_modules/
 .git/
 *.log
@@ -8,3 +9,5 @@ node_modules/
 pnpm-lock.yaml
 .gitignore
 TODO.md
+release.js
+虚拟滚动思路.md

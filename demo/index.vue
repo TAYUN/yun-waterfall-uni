@@ -2,7 +2,7 @@
 import { onReachBottom } from '@dcloudio/uni-app'
 import { onMounted, ref } from 'vue'
 import { YunWaterfall, YunWaterfallItem } from 'yun-waterfall-uni'
-import SimulatedImage from './SimulatedImage.vue'
+import SimulatedImage from '../components/SimulatedImage.vue'
 import { text } from './mock'
 
 interface ListItem {
@@ -37,20 +37,20 @@ function getData(count = 10) {
 // 错误类型文本转换
 function getErrorTypeText(status: string) {
   switch (status) {
-    case 'original_failed':
+    case 'fail':
       return '原始内容加载失败'
-    case 'final_fallback':
+    case 'final':
       return '占位图片也加载失败'
     case 'timeout':
       return '加载超时'
-    case 'placeholder_success':
+    case 'phok':
       return '占位图片加载成功'
     default:
       return ''
   }
 }
 
-function onLoad() {
+function loadEnd() {
 }
 let nextId = 1
 // 生成单个数据项
@@ -206,25 +206,24 @@ onReachBottom(async () => {
       </wd-button>
     </view>
 
-    <yun-waterfall class="mx-2" @load="onLoad">
+    <yun-waterfall class="mx-2" @load-end="loadEnd">
       <yun-waterfall-item v-for="(item, index) in list" :key="item.id" :index="index" error-handling-mode="fallback">
-        <template #default="{ onLoad, errorInfo }">
+        <template #default="{ loaded, errorInfo }">
           <view class="overflow-hidden border border-gray-300 rounded-lg border-solid bg-white shadow-lg">
             <!-- 第一层：正常内容 -->
-            <SimulatedImage v-if="errorInfo.status === 'none'" :meta="item.img" @load="onLoad" />
+            <SimulatedImage v-if="errorInfo.status === 'none'" :meta="item.img" @load="loaded" />
             <!-- 第二层：占位图片 -->
             <view
               v-else-if="
                 [
-                  'original_failed',
-                  'placeholder_loading',
-                  'placeholder_success',
+                  'fail',
+                  'phok',
                 ].includes(errorInfo.status)
               " class="fallback-container"
             >
               <image
-                :src="placeholderSrc" mode="aspectFill" class="fallback-image" @load="errorInfo.placeholder.onLoad"
-                @error="errorInfo.placeholder.onError"
+                :src="placeholderSrc" mode="aspectFill" class="fallback-image" @load="errorInfo.placeholder.load"
+                @error="errorInfo.placeholder.error"
               />
             </view>
             <!-- 第三层：最终兜底 -->

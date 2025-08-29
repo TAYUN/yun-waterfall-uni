@@ -8,14 +8,6 @@ export interface WaterfallItemProps {
   width?: number
   height?: number
   /**
-   * 失败处理模式
-   * - 'placeholder': 显示占位符（默认）
-   * - 'error-image': 显示错误图片
-   * - 'retry-tip': 显示重试提示
-   * - 'hide': 隐藏项目
-   */
-  failureMode?: 'placeholder' | 'error-image' | 'retry-tip' | 'hide'
-  /**
    * 错误处理模式
    * - 'none': 默认模式，加载一次失败就不再处理，使用默认高度
    * - 'placeholder': 占位图模式，失败后直接显示占位图片，不重试
@@ -31,48 +23,23 @@ export interface WaterfallItemProps {
 
 export interface WaterfallItemSlots {
   default?: (props: {
-    onLoad: () => void
+    loaded: () => void
     columnWidth: number
     imageHeight: number
     key?: string
     errorInfo: {
       status:
         | 'none'
-        | 'original_failed'
-        | 'placeholder_loading'
-        | 'placeholder_success'
+        | 'fail'
+        | 'phok'
         | 'timeout'
-        | 'final_fallback'
+        | 'final'
       message: string
       placeholder: {
-        onLoad: () => void
-        onError: () => void
+        load: () => void
+        error: () => void
       }
       // retry?: (isReset?: boolean) => Promise<void>
-    }
-  }) => any
-  image?: (props: {
-    onLoad: () => void
-    columnWidth?: number
-    key?: string
-    errorInfo?: {
-      status:
-        | 'none'
-        | 'original_failed'
-        | 'placeholder_loading'
-        | 'placeholder_success'
-        | 'timeout'
-        | 'final_fallback'
-      message: string
-      placeholder: {
-        src: string
-        onLoad: () => void
-        onError: () => void
-      }
-      actions: {
-        retry?: () => void
-        refreshImage: () => void
-      }
     }
   }) => any
 }
@@ -85,7 +52,7 @@ export interface WaterfallItemInfo {
   loaded: boolean // 是否完成加载过程（成功或失败）
   loadSuccess: boolean // 是否加载成功
   visible: boolean // 是否可见
-  isInserted: boolean // 是否插入是插入项目 
+  isInserted: boolean // 是否插入是插入项目
   heightError: boolean // 高度是否异常
   height: number // 项目高度
   top: number // 垂直位置

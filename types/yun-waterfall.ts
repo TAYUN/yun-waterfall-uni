@@ -2,6 +2,7 @@ import type { InjectionKey, StyleValue } from 'vue'
 import type { WaterfallItemInfo } from './yun-waterfall-item'
 
 export interface WaterfallProps {
+  show?: boolean
   rootStyle?: StyleValue
   rootClass?: string
   columns?: number
@@ -13,6 +14,7 @@ export interface WaterfallProps {
 }
 
 export const defaultWaterfallProps = {
+  show: undefined,
   columns: 2,
   columnGap: 16,
   rowGap: 16,
@@ -26,17 +28,17 @@ export interface WaterfallSlots {
 }
 
 export interface WaterfallEmits {
-  (e: 'load'): void
-  (e: 'loadstart'): void
+  (e: 'loadEnd'): void
+  (e: 'loadStart'): void
   // retry: (payload: { item: WaterfallItemInfo; retryCount: number }) => void
   (e: 'retry'): void
+  (e: 'update:show', v: boolean): void
 }
 
 export interface WaterfallExpose {
-  reflow: () => void // 增量重排（处理待排版队列）
-  fullReflow: () => void // 仅重新排版
+  reflow: () => void // 重排
   refreshReflow: () => void // 刷新数据后重排
-  onLoad: (handler: () => void) => void
+  loadDone: (handler: () => void) => void
 }
 
 export interface WaterfallContext {

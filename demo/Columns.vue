@@ -25,7 +25,7 @@ function getData() {
   })
 }
 
-function onLoad() { }
+function loadEnd() { }
 function sliderChange({ detail: { value } }: any) {
   console.log('value', value)
   columns.value = value
@@ -44,10 +44,10 @@ onReachBottom(async () => {
 <template>
   <view>
     <slider :value="columns" class="mb-2" show-value :min="1" :max="8" @change="sliderChange" />
-    <yun-waterfall class="mx-2" :columns="columns" :column-gap="4" :row-gap="4" @load="onLoad">
+    <yun-waterfall class="mx-2" :columns="columns" :column-gap="4" :row-gap="4" @load-end="loadEnd">
       <yun-waterfall-item v-for="(item, index) in list" :key="index">
-        <template #default="{ onLoad }">
-          <image mode="widthFix" class="w-full flex" :src="item.url" @load="onLoad" @error="onLoad" />
+        <template #default="{ loaded }">
+          <image mode="widthFix" class="w-full flex" :src="item.url" @load="loaded" @error="loaded" />
         </template>
       </yun-waterfall-item>
     </yun-waterfall>

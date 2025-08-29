@@ -8,9 +8,6 @@
  * 3. 根据父组件计算的位置进行定位
  * 4. 提供加载完成回调给内容组件
  * 5. 支持平滑的显示动画效果
- * todo:
- * 简化item的属性
- * 添加错误处理支持受控和非受控功能
  */
 
 import {
@@ -85,11 +82,10 @@ const FALLBACK_HEIGHT = 200 // 异常默认高度
 // 错误状态枚举
 const ItemStatus = {
   NONE: 'none',
-  ORIGINAL_FAILED: 'original_failed',
-  PLACEHOLDER_LOADING: 'placeholder_loading',
-  PLACEHOLDER_SUCCESS: 'placeholder_success',
+  ORIGINAL_FAILED: 'fail',
+  PLACEHOLDER_SUCCESS: 'phok',
   TIMEOUT: 'timeout',
-  FINAL_FALLBACK: 'final_fallback',
+  FINAL_FALLBACK: 'final',
 } as const
 
 type ItemStatusType = (typeof ItemStatus)[keyof typeof ItemStatus]
@@ -107,12 +103,12 @@ function setStatus(status: ItemStatusType, message = '') {
 }
 
 // 语义化的 errorInfo slot 结构
-const slotErrorInfo = computed(() => ({
+const errorInfo = computed(() => ({
   status: errorState.status,
   message: errorState.message,
   placeholder: {
-    onLoad: onFallbackLoad,
-    onError: onFallbackError,
+    load: onPlaceholderLoad,
+    error: onPlaceholderError,
   },
   // retry: refreshImage,
 }))
@@ -130,7 +126,7 @@ const item = shallowReactive<WaterfallItemInfo>({
   loaded: false, // 是否加载完成（图片等资源）
   loadSuccess: false, // 是否加载成功
   visible: false, // 是否可见（由父组件控制）
-  isInserted: false, // 是否插入项目 
+  isInserted: false, // 是否插入项目
   heightError: false, // 是否高度异常
   height: 0, // 项目高度（DOM 实际高度）
   top: 0, // 垂直位置（由父组件计算）
@@ -179,20 +175,20 @@ async function onLoadKnownSize() {
   // todo 如果已知高度也加载失败了呢
 }
 // 模式1：默认模式 - 失败就结束
-async function handleLoadFailure_None() {
+async function handleFailureNone() {
   setStatus(ItemStatus.FINAL_FALLBACK, '加载失败')
   await item.updateHeight()
   item.loaded = true
 }
 
 // 模式2：占位图模式 - 失败后直接显示占位图片
-async function handleLoadFailure_Placeholder() {
+async function handleFailurePlaceholder() {
   setStatus(ItemStatus.ORIGINAL_FAILED, '原始内容加载失败，显示占位图片')
   // 不设置 loaded = true，让占位图片的加载回调来处理
 }
 
 // 模式3：只重试模式 - 重试指定次数
-async function handleLoadFailure_Retry() {
+async function handleFailureRetry() {
   retryCount--
 
   if (retryCount > 0) {
@@ -208,7 +204,7 @@ async function handleLoadFailure_Retry() {
 }
 
 // 模式4：完整模式 - 原有的三层处理机制
-async function handleLoadFailure_Fallback() {
+async function handleFailureFinal() {
   retryCount--
 
   if (retryCount > 0) {
@@ -225,7 +221,7 @@ async function handleLoadFailure_Fallback() {
  * 当项目内容（如图片）加载完成或失败时调用
  * 通知父组件进行重新布局
  */
-async function onLoad(event?: any) {
+async function loaded(event?: any) {
   if (props.width && props.height)
     return
   if (overtime)
@@ -250,21 +246,21 @@ async function onLoad(event?: any) {
   switch (props.errorHandlingMode) {
     case 'none':
       // 默认模式：失败就结束，使用默认高度
-      await handleLoadFailure_None()
+      await handleFailureNone()
       break
 
     case 'placeholder':
-      await handleLoadFailure_Placeholder()
+      await handleFailurePlaceholder()
       break
 
     case 'retry':
       // 重试模式：重试指定次数后结束
-      await handleLoadFailure_Retry()
+      await handleFailureRetry()
       break
 
     case 'fallback':
       // 完整模式：重试 + 占位图 + 兜底
-      await handleLoadFailure_Fallback()
+      await handleFailureFinal()
       break
   }
 }
@@ -272,8 +268,9 @@ async function onLoad(event?: any) {
 /**
  * 第二层：占位图片加载成功
  */
-async function onFallbackLoad() {
-  if (overtime) return // 已超时，忽略后续加载事件
+async function onPlaceholderLoad() {
+  if (overtime)
+    return // 已超时，忽略后续加载事件
   setStatus(ItemStatus.PLACEHOLDER_SUCCESS, '占位图片加载成功')
   await item.updateHeight()
   item.loaded = true
@@ -282,8 +279,9 @@ async function onFallbackLoad() {
 /**
  * 第二层失败：占位图片也加载失败，进入第三层（文字兜底）
  */
-async function onFallbackError() {
-  if (overtime) return // 已超时，忽略后续加载事件
+async function onPlaceholderError() {
+  if (overtime)
+    return // 已超时，忽略后续加载事件
   setStatus(ItemStatus.FINAL_FALLBACK, '占位图片也加载失败')
   // 最后显示最终兜底方案结束处理
   await item.updateHeight()
@@ -298,7 +296,8 @@ async function onFallbackError() {
 async function updateHeight(flag = false) {
   try {
     // 如果父级排版中断，停止获取dom信息
-    if (context.isLayoutInterrupted) return
+    if (context.isLayoutInterrupted)
+      return
     await nextTick() // 很重要不然会导致获取高度错误
     // 查询 DOM 元素的边界信息，获取实际高度
     const rect = await getBoundingClientRect(`.${itemId.value}`, instance)
@@ -424,14 +423,6 @@ const waterfallItemStyle = computed(() => {
     props.rootStyle, // 用户自定义样式
   )
 })
-// const waterfallItemImageStyle = computed(() => {
-//   return stringifyStyle({
-//     // 宽度：使用父组件计算的列宽
-//     // width: context.columnWidth + 'px',
-//     // 高度
-//     paddingTop: props?.width && props?.height ? ratio.value * 100 + '%' : '0',
-//   })
-// })
 
 // ==================== 组件暴露接口 ====================
 
@@ -445,19 +436,11 @@ defineExpose<WaterfallItemExpose>({})
 <template>
   <!-- 瀑布流项目容器：绝对定位，通过 transform 控制位置 -->
   <view :class="waterfallItemClass" :style="waterfallItemStyle">
-    <!-- 适用于已知图片高度，如果传入了width,和height，就使用这个 -->
-    <!-- <view v-if="$slots.image" :style="waterfallItemImageStyle">
-      <slot
-        name="image"
-        :on-load="onLoad"
-        :error-info="slotErrorInfo"
-      ></slot>
-    </view> -->
-
-    <!-- 插槽内容，传递完整的错误处理信息 -->
     <!-- TODO  itemId 和 waterfallItemClass 共用了，是否有影响 -->
-    <slot :key="itemId" :on-load="onLoad" :column-width="context.columnWidth"
-      :image-height="context.columnWidth * ratio" :error-info="slotErrorInfo" />
+    <slot
+      :key="itemId" :loaded="loaded" :column-width="context.columnWidth"
+      :image-height="context.columnWidth * ratio" :error-info="errorInfo"
+    />
   </view>
 </template>
 
